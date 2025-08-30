@@ -35,3 +35,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### 환경 변수 및 보안 파일 ###
+/src/main/resources/application.yml
