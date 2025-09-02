@@ -34,6 +34,10 @@ public class SecurityConfig {
                                 "api/v1.0/user/login",
                                 "api/v1.0/user/check-id",
                                 "api/v1.0/user/reissue",
+                                "/api/v1.0/products",
+                                "/api/v1.0/products/batch",
+                                "/api/v1.0/examples",
+                                "/api/v1.0/guides",
                                 "/oauth2/**"
 
                         ).permitAll()
