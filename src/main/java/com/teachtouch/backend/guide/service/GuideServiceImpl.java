@@ -3,16 +3,20 @@ package com.teachtouch.backend.guide.service;
 import com.teachtouch.backend.example.dto.ExampleRequestDTO;
 import com.teachtouch.backend.guide.dto.GuideRequestDTO;
 import com.teachtouch.backend.guide.dto.StepRequestDTO;
-import com.teachtouch.backend.guide.entity.Guide;
-import com.teachtouch.backend.guide.entity.GuideExample;
-import com.teachtouch.backend.guide.entity.GuideProduct;
-import com.teachtouch.backend.guide.entity.Step;
+import com.teachtouch.backend.guide.entity.*;
 import com.teachtouch.backend.guide.repository.GuideRepository;
+import com.teachtouch.backend.guide.repository.StepProgressRepository;
+import com.teachtouch.backend.guide.repository.StepRepository;
 import com.teachtouch.backend.product.entity.Product;
 import com.teachtouch.backend.product.repository.ProductRepository;
+import com.teachtouch.backend.user.entity.User;
+import com.teachtouch.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +25,9 @@ public class GuideServiceImpl implements GuideService {
 
     private final GuideRepository guideRepository;
     private final ProductRepository productRepository;
+    private final StepProgressRepository stepProgressRepository;
+    private final StepRepository stepRepository;
+    private final UserRepository userRepository;
 
     @Override
     public Guide upsertGuide(GuideRequestDTO dto) {
@@ -96,4 +103,57 @@ public class GuideServiceImpl implements GuideService {
 
         return step;
     }
+
+
+    @Override
+    public List<Guide> findAll() {
+        return guideRepository.findAll();
+    }
+
+    @Override
+    public Optional<Guide> findById(Long id) {
+        return guideRepository.findById(id);
+    }
+
+    @Override
+    public List<Guide> searchByKeyword(String keyword) {
+        return guideRepository.findByTitleContainingIgnoreCaseOrCategoryContainingIgnoreCase(keyword, keyword);
+    }
+
+    @Override
+    public void markStepAsCompleted(Long stepId, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저 없음: " + userId));
+        Step step = stepRepository.findById(stepId)
+                .orElseThrow(() -> new IllegalArgumentException("단계 없음: " + stepId));
+
+        StepProgress progress = stepProgressRepository.findByUserAndStep(user, step)
+                .orElse(StepProgress.builder()
+                        .user(user)
+                        .step(step)
+                        .completed(true)
+                        .build());
+
+        progress.setCompleted(true);
+        stepProgressRepository.save(progress);
+    }
+
+    @Override
+    public List<String> getCompletedStepCodes(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저 없음: " + userId));
+        return stepProgressRepository.findByUser(user).stream()
+                .filter(StepProgress::isCompleted)
+                .map(progress -> progress.getStep().getStepCode())
+                .toList();
+    }
+    @Override
+    public void deleteGuide(Long guideId) {
+        Guide guide = guideRepository.findById(guideId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 가이드를 찾을 수 없습니다: " + guideId));
+        guideRepository.delete(guide);
+    }
+
+
+
 }
