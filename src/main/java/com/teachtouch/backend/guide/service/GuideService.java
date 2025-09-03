@@ -16,4 +16,6 @@ public interface GuideService {
 
     List<String> getCompletedStepCodes(Long userId);
 
+    void deleteGuide(Long guideId);
+
 }

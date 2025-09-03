@@ -11,7 +11,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1.0/guides")
@@ -75,6 +77,18 @@ public class GuideController {
         List<String> completed = guideService.getCompletedStepCodes(userId);
         return ResponseEntity.ok(completed);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, String>> deleteGuide(@PathVariable Long id) {
+        guideService.deleteGuide(id);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "가이드가 성공적으로 삭제되었습니다.");
+
+        return ResponseEntity.ok(response);
+    }
+
+
 
 
 }

@@ -147,6 +147,13 @@ public class GuideServiceImpl implements GuideService {
                 .map(progress -> progress.getStep().getStepCode())
                 .toList();
     }
+    @Override
+    public void deleteGuide(Long guideId) {
+        Guide guide = guideRepository.findById(guideId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 가이드를 찾을 수 없습니다: " + guideId));
+        guideRepository.delete(guide);
+    }
+
 
 
 }

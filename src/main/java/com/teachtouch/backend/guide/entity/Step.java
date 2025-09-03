@@ -39,5 +39,9 @@ public class Step {
     @Column(columnDefinition = "json")
     @Convert(converter = MetadataConverter.class)
     private Map<String,Object> metadata;
+
+    @OneToMany(mappedBy = "step", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StepProgress> progresses = new ArrayList<>();
+
 }
 
