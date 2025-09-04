@@ -26,14 +26,15 @@ public class Guide {
     private String category;
     private String description;
 
-    @OneToMany(mappedBy = "guide")
-    private List<GuideProduct> products = new ArrayList<>();
-
-    @OneToMany(mappedBy = "guide")
-    private List<GuideExample> examples = new ArrayList<>();
-
     @OneToMany(mappedBy = "guide", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Step> steps = new ArrayList<>();
+
+    @OneToMany(mappedBy = "guide", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GuideProduct> products = new ArrayList<>();
+
+    @OneToMany(mappedBy = "guide", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GuideExample> examples = new ArrayList<>();
+
 
     @CreatedDate
     private LocalDateTime createdAt;
