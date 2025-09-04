@@ -2,6 +2,7 @@ package com.teachtouch.backend.user.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.teachtouch.backend.global.entity.BaseEntity;
+import com.teachtouch.backend.retouch.entity.SolveHistory;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -44,5 +45,8 @@ public class User extends BaseEntity {
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate birthDate;
+
+    @OneToMany(mappedBy = "user")
+    private List<SolveHistory> solveHistories = new ArrayList<>(); //테스트 기록
 
     }
