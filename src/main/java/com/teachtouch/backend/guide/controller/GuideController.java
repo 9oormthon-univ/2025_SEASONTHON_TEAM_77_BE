@@ -74,7 +74,7 @@ public class GuideController {
             @AuthenticationPrincipal CustomUserDetails user) {
 
         Long userId = user.getUser().getId();
-        List<String> completed = guideService.getCompletedStepCodes(userId);
+        List<String> completed = guideService.getCompletedStepCodes(userId, guideId);
         return ResponseEntity.ok(completed);
     }
 
