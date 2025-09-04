@@ -41,6 +41,7 @@ public class SecurityConfig {
                                 "/api/v1.0/guides/{id}",
                                 "/api/v1.0/guides/search",
                                 "/oauth2/**",
+                                "/api/v1.0/tts",
                                 "/api/v1.0/retouch/test/all",
                                 "/api/v1.0/retouch/test/add",
                                 "/api/v1.0/retouch/test/**"

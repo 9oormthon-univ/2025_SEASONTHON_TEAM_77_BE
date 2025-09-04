@@ -53,6 +53,9 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// Google TTS
+	implementation 'com.google.cloud:google-cloud-texttospeech:2.68.0'
 }
 
 
