@@ -32,6 +32,12 @@ public class ProductServiceImpl implements ProductService {
         return products.stream().map(Product::getId).toList();
     }
 
+    @Override
+    public Product findById(Long id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("상품이 존재하지 않음: " + id));
+    }
+
     private Product toEntity(ProductRequestDTO dto) {
         return Product.builder()
                 .name(dto.name())

@@ -13,4 +13,7 @@ public interface StepProgressRepository extends JpaRepository<StepProgress, Long
     Optional<StepProgress> findByUserAndStep(User user, Step step);
 
     List<StepProgress> findByUser(User user);
+
+    List<StepProgress> findByUserAndStep_Guide_IdAndCompletedTrue(User user, Long guideId);
+
 }

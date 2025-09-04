@@ -14,7 +14,7 @@ public interface GuideService {
 
     void markStepAsCompleted(Long stepId, Long userId);
 
-    List<String> getCompletedStepCodes(Long userId);
+    List<String> getCompletedStepCodes(Long userId, Long guideId);
 
     void deleteGuide(Long guideId);
 
