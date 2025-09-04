@@ -105,4 +105,11 @@ public class UserServiceImpl implements UserService {
         String newAccessToken = jwtProvider.generateAccessToken(loginId);
         return new TokenRefreshResponseDto(newAccessToken);
     }
+
+    @Override
+    public Long getUserIdByLoginId(String loginId) {
+        User user = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+        return user.getId();
+    }
 }
