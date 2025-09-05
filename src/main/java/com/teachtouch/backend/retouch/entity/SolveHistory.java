@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -23,8 +24,8 @@ public class SolveHistory {
 
     private int duration; //소요시간
 
-    @OneToMany(mappedBy = "solveHistory")
-    private List<Product> answer; //사용자 제출 정답
+    @OneToMany(mappedBy = "solveHistory", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SolveHistoryProduct> solveHistoryProducts = new ArrayList<>(); //사용자 제출 정답
 
     @ManyToOne
     @JoinColumn(name = "test_id")

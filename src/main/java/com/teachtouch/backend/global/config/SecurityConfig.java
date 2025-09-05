@@ -44,7 +44,11 @@ public class SecurityConfig {
                                 "/api/v1.0/tts",
                                 "/api/v1.0/retouch/test/all",
                                 "/api/v1.0/retouch/test/add",
-                                "/api/v1.0/retouch/test/**"
+                                "/api/v1.0/retouch/test/**",
+                                "/api/v1.0/retouch/progress",
+                                "/api/v1.0/retouch/progress/all",
+                                "/api/v1.0/retouch/progress/*",
+                                "/api/v1.0/retouch/submit"
 
                         ).permitAll()
                         .anyRequest().authenticated()
