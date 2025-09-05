@@ -4,9 +4,7 @@ import com.teachtouch.backend.example.dto.ExampleRequestDTO;
 import com.teachtouch.backend.guide.dto.GuideRequestDTO;
 import com.teachtouch.backend.guide.dto.StepRequestDTO;
 import com.teachtouch.backend.guide.entity.*;
-import com.teachtouch.backend.guide.repository.GuideRepository;
-import com.teachtouch.backend.guide.repository.StepProgressRepository;
-import com.teachtouch.backend.guide.repository.StepRepository;
+import com.teachtouch.backend.guide.repository.*;
 import com.teachtouch.backend.product.entity.Product;
 import com.teachtouch.backend.product.service.ProductService;
 import com.teachtouch.backend.user.entity.User;
@@ -28,6 +26,7 @@ public class GuideServiceImpl implements GuideService {
     private final StepProgressRepository stepProgressRepository;
     private final StepRepository stepRepository;
     private final UserRepository userRepository;
+    private final GuideProgressRepository guideProgressRepository;
 
     @Override
     public Guide upsertGuide(GuideRequestDTO dto) {
@@ -40,25 +39,16 @@ public class GuideServiceImpl implements GuideService {
         guide.setCategory(dto.category());
         guide.setDescription(dto.description());
 
-        if (dto.productIds() != null) {
-            updateProducts(guide, dto.productIds());
-        }
-        if (dto.examples() != null) {
-            updateExamples(guide, dto.examples());
-        }
-        if (dto.steps() != null) {
-            updateSteps(guide, dto.steps(), null);
-        }
+        if (dto.productIds() != null) updateProducts(guide, dto.productIds());
+        if (dto.examples() != null) updateExamples(guide, dto.examples());
+        if (dto.steps() != null) updateSteps(guide, dto.steps(), null);
 
         return guideRepository.save(guide);
     }
 
-
     private void updateProducts(Guide guide, List<Long> productIds) {
         Set<Long> incomingIds = new HashSet<>(productIds);
-
         guide.getProducts().removeIf(gp -> !incomingIds.contains(gp.getProduct().getId()));
-
 
         for (Long productId : productIds.stream().distinct().toList()) {
             boolean exists = guide.getProducts().stream()
@@ -83,13 +73,11 @@ public class GuideServiceImpl implements GuideService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-
         guide.getExamples().removeIf(ex -> ex.getId() != null && !incomingIds.contains(ex.getId()));
 
         for (ExampleRequestDTO dto : exampleDtos) {
             GuideExample example;
             if (dto.id() != null && existingMap.containsKey(dto.id())) {
-                // 기존 example 수정
                 example = existingMap.get(dto.id());
                 example.setQuantity(dto.quantity());
                 if (!example.getProduct().getId().equals(dto.productId())) {
@@ -97,7 +85,6 @@ public class GuideServiceImpl implements GuideService {
                     example.setProduct(product);
                 }
             } else {
-                // 신규 example
                 Product product = productService.findById(dto.productId());
                 example = new GuideExample();
                 example.setGuide(guide);
@@ -108,12 +95,10 @@ public class GuideServiceImpl implements GuideService {
         }
     }
 
-
     private void updateSteps(Guide guide, List<StepRequestDTO> stepDtos, Step parent) {
         List<Step> existingSteps = (parent == null)
                 ? guide.getSteps().stream().filter(s -> s.getParent() == null).toList()
                 : parent.getSubSteps();
-
 
         Map<String, Step> existingMap = existingSteps.stream()
                 .collect(Collectors.toMap(Step::getStepCode, s -> s));
@@ -121,7 +106,6 @@ public class GuideServiceImpl implements GuideService {
         Set<String> incomingCodes = stepDtos.stream()
                 .map(StepRequestDTO::stepCode)
                 .collect(Collectors.toSet());
-
 
         if (parent == null) {
             guide.getSteps().removeIf(s -> !incomingCodes.contains(s.getStepCode()));
@@ -144,27 +128,23 @@ public class GuideServiceImpl implements GuideService {
                 else parent.getSubSteps().add(step);
             }
 
-            if (dto.subSteps() != null) {
-                updateSteps(guide, dto.subSteps(), step);
-            }
+            if (dto.subSteps() != null) updateSteps(guide, dto.subSteps(), step);
         }
     }
 
-    @Override
-    public List<Guide> findAll() {
-        return guideRepository.findAll();
-    }
+    /* === 조회 === */
+    @Override @Transactional(readOnly = true)
+    public List<Guide> findAll() { return guideRepository.findAll(); }
 
-    @Override
-    public Optional<Guide> findById(Long id) {
-        return guideRepository.findById(id);
-    }
+    @Override @Transactional(readOnly = true)
+    public Optional<Guide> findById(Long id) { return guideRepository.findById(id); }
 
-    @Override
+    @Override @Transactional(readOnly = true)
     public List<Guide> searchByKeyword(String keyword) {
         return guideRepository.findByTitleContainingIgnoreCaseOrCategoryContainingIgnoreCase(keyword, keyword);
     }
 
+    /* === Step 단위 완료 === */
     @Override
     public void markStepAsCompleted(Long stepId, Long userId) {
         User user = userRepository.findById(userId)
@@ -183,6 +163,7 @@ public class GuideServiceImpl implements GuideService {
         stepProgressRepository.save(progress);
     }
 
+    @Override @Transactional(readOnly = true)
     public List<String> getCompletedStepCodes(Long userId, Long guideId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("유저 없음: " + userId));
@@ -194,6 +175,54 @@ public class GuideServiceImpl implements GuideService {
                 .toList();
     }
 
+    /* === Guide 단위 완료 === */
+    @Override @Transactional(readOnly = true)
+    public boolean isGuideCompleted(Long userId, Long guideId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저 없음: " + userId));
+        Guide guide = guideRepository.findById(guideId)
+                .orElseThrow(() -> new IllegalArgumentException("가이드 없음: " + guideId));
+
+        return guideProgressRepository.findByUserAndGuide(user, guide)
+                .map(GuideProgress::isCompleted)
+                .orElse(false);
+    }
+
+    @Override @Transactional(readOnly = true)
+    public Map<Long, Boolean> areGuidesCompleted(Long userId, List<Long> guideIds) {
+        if (guideIds == null || guideIds.isEmpty()) return Collections.emptyMap();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저 없음: " + userId));
+
+        var progresses = guideProgressRepository.findByUserAndGuide_IdIn(user, guideIds);
+        Map<Long, Boolean> map = new HashMap<>();
+        for (Long id : guideIds) map.put(id, false);
+        for (GuideProgress gp : progresses) {
+            map.put(gp.getGuide().getId(), gp.isCompleted());
+        }
+        return map;
+    }
+
+    @Override
+    public void markGuideAsCompleted(Long guideId, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("유저 없음: " + userId));
+        Guide guide = guideRepository.findById(guideId)
+                .orElseThrow(() -> new IllegalArgumentException("가이드 없음: " + guideId));
+
+        GuideProgress progress = guideProgressRepository.findByUserAndGuide(user, guide)
+                .orElse(GuideProgress.builder()
+                        .user(user)
+                        .guide(guide)
+                        .completed(false)
+                        .build());
+
+        progress.setCompleted(true);
+        guideProgressRepository.save(progress);
+    }
+
+    /* === 삭제 === */
     @Override
     public void deleteGuide(Long guideId) {
         Guide guide = guideRepository.findById(guideId)
