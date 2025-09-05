@@ -37,7 +37,7 @@ public class SecurityConfig {
                                 "/api/v1.0/products",
                                 "/api/v1.0/products/batch",
                                 "/api/v1.0/examples",
-                                "/api/v1.0/guides",
+                                "/api/v1.0/guides/**",
                                 "/api/v1.0/guides/{id}",
                                 "/api/v1.0/guides/search",
                                 "/oauth2/**",
@@ -45,6 +45,7 @@ public class SecurityConfig {
                                 "/api/v1.0/retouch/test/all",
                                 "/api/v1.0/retouch/test/add",
                                 "/api/v1.0/retouch/test/**"
+
 
                         ).permitAll()
                         .anyRequest().authenticated()
