@@ -19,4 +19,6 @@ public interface RetouchService {
     List<TestProgressResponseDto> getAllTestProgress(Long userId);
 
     TestResultDto submitTest(Long userId, TestSubmitDto submitDto);
+
+    List<WrongTestDto> getWrongTests(Long userId);
 }
