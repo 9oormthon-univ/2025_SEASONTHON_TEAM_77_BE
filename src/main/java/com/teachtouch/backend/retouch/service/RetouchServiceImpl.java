@@ -182,9 +182,9 @@ public class RetouchServiceImpl implements RetouchService {
         int correctCount = 0;
 
         // 정답 상품들을 Map으로 변환 (상품ID -> TestOrderProduct)
-        Map<Long, TestOrderProduct> correctProductMap = correctAnswers.stream()
+        Map<String, TestOrderProduct> correctProductMap = correctAnswers.stream()
                 .collect(Collectors.toMap(
-                        top -> top.getProduct().getId(),
+                        top -> top.getProduct().getName(),
                         top -> top
                 ));
 
@@ -197,7 +197,6 @@ public class RetouchServiceImpl implements RetouchService {
 
         // 정답 상품들 체크
         for (TestOrderProduct correctItem : correctAnswers) {
-            Long productId = correctItem.getProduct().getId();
             String productName = correctItem.getProduct().getName();
             int correctQuantity = correctItem.getQuantity();
             List<ProductOptionDto> productOptions = correctItem.getProductOptions().stream()
@@ -209,7 +208,7 @@ public class RetouchServiceImpl implements RetouchService {
             comparison.setCorrectQuantity(correctQuantity);
             comparison.setProductOptions(productOptions);
 
-            TestSubmitDto.SubmittedProductDto submittedProduct = submittedProductMap.get(productId);
+            TestSubmitDto.SubmittedProductDto submittedProduct = submittedProductMap.get(productName);
 
             if (submittedProduct == null) {
                 // 상품이 제출되지 않음
