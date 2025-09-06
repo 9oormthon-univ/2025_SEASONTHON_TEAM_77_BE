@@ -49,4 +49,7 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "user")
     private List<SolveHistory> solveHistories = new ArrayList<>(); //테스트 기록
 
+    @Column
+    private String profileImageUrl;
+
     }

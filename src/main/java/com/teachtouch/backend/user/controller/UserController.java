@@ -3,6 +3,7 @@ package com.teachtouch.backend.user.controller;
 
 import com.teachtouch.backend.auth.dto.TokenRefreshRequestDto;
 import com.teachtouch.backend.auth.dto.TokenRefreshResponseDto;
+import com.teachtouch.backend.user.dto.UserInfoResponseDto;
 import com.teachtouch.backend.user.dto.UserLoginRequestDto;
 import com.teachtouch.backend.user.dto.UserLoginResponseDto;
 import com.teachtouch.backend.user.dto.UserSignupRequestDto;
@@ -53,6 +54,12 @@ public class UserController {
         userService.logout(loginId);
         return ResponseEntity.ok("로그아웃 완료");
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserInfoResponseDto> getMyInfo(@RequestHeader("Authorization") String token) {
+        return ResponseEntity.ok(userService.getUserInfo(token));
+    }
+
 
 
 

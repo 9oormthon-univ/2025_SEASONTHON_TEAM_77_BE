@@ -2,6 +2,7 @@ package com.teachtouch.backend.user.service;
 
 import com.teachtouch.backend.auth.dto.TokenRefreshRequestDto;
 import com.teachtouch.backend.auth.dto.TokenRefreshResponseDto;
+import com.teachtouch.backend.user.dto.UserInfoResponseDto;
 import com.teachtouch.backend.user.dto.UserLoginRequestDto;
 import com.teachtouch.backend.user.dto.UserLoginResponseDto;
 import com.teachtouch.backend.user.dto.UserSignupRequestDto;
@@ -22,4 +23,6 @@ public interface UserService {
     boolean checkLoginIdDuplicate(String loginId);
 
     Long getUserIdByLoginId(String loginId);
+
+    UserInfoResponseDto getUserInfo(String token);
 }
