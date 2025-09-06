@@ -5,6 +5,7 @@ import com.teachtouch.backend.auth.dto.TokenRefreshResponseDto;
 import com.teachtouch.backend.auth.entity.RefreshToken;
 import com.teachtouch.backend.auth.repository.RefreshTokenRepository;
 import com.teachtouch.backend.global.jwt.JwtProvider;
+import com.teachtouch.backend.user.dto.UserInfoResponseDto;
 import com.teachtouch.backend.user.dto.UserLoginRequestDto;
 import com.teachtouch.backend.user.dto.UserLoginResponseDto;
 import com.teachtouch.backend.user.dto.UserSignupRequestDto;
@@ -112,4 +113,13 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
         return user.getId();
     }
+
+    @Override
+    public UserInfoResponseDto getUserInfo(String token) {
+        String loginId = getLoginIdFromToken(token);
+        User user = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new IllegalArgumentException("유저를 찾을 수 없습니다."));
+        return UserInfoResponseDto.from(user);
+    }
+
 }
