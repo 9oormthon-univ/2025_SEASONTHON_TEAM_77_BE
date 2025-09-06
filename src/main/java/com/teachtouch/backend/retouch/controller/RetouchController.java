@@ -70,4 +70,12 @@ public class RetouchController {
         return ResponseEntity.ok(result);
     }
 
+    @GetMapping("/wrong")
+    public ResponseEntity<List<WrongTestDto>> getWrongTests(HttpServletRequest request) {
+        String LoginId = userService.getLoginIdFromToken(request.getHeader("Authorization"));
+        Long userId = userService.getUserIdByLoginId(LoginId);
+        List<WrongTestDto> wrongTests = retouchService.getWrongTests(userId);
+        return ResponseEntity.ok(wrongTests);
+    }
+
 }

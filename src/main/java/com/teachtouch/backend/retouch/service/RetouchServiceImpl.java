@@ -13,10 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.swing.text.html.Option;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -332,6 +329,36 @@ public class RetouchServiceImpl implements RetouchService {
         }
 
         return dto;
+    }
+
+    @Override
+    public List<WrongTestDto> getWrongTests(Long userId) {
+        List<SolveHistory> solveHistories = solveHistoryRepository.findByUserIdOrderByCreatedDateDesc(userId);
+
+        //각 테스트별로 가장 최근 시도만 추출
+        Map<Long, SolveHistory> lastHistories = new HashMap<>();
+        for (SolveHistory history : solveHistories) {
+            Long testId = history.getTest().getId();
+            if (!lastHistories.containsKey(testId)) {
+                lastHistories.put(testId, history);
+            }
+        }
+
+        //최신 시도 중 틀린 것만 필터링
+        return lastHistories.values().stream()
+                .filter(solveHistory -> !solveHistory.isTrue()) // 틀린 것만
+                .sorted((a, b) -> b.getCreatedDate().compareTo(a.getCreatedDate())) // 최신순
+                .map(this::convertToWrongTestDto)
+                .collect(Collectors.toList());
+    }
+
+    private WrongTestDto convertToWrongTestDto(SolveHistory solveHistory) {
+        WrongTestDto wrongTestDto = new WrongTestDto();
+        wrongTestDto.setTestId(solveHistory.getTest().getId());
+        wrongTestDto.setTestTitle(solveHistory.getTest().getTitle());
+        wrongTestDto.setSolveHistoryId(solveHistory.getId());
+        wrongTestDto.setTestDate(solveHistory.getCreatedDate());
+        return wrongTestDto;
     }
 
 }
