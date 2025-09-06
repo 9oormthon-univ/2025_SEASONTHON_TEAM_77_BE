@@ -17,16 +17,4 @@ public class CreateTestDto {
     private String difficulty;
     private String testOrderName;
     private List<CreateTestProductDto> products;
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class CreateTestProductDto {
-        private String Name;
-        private String category;
-        private int price;
-        private String imageUrl;
-        private int quantity;
-    }
-
 }

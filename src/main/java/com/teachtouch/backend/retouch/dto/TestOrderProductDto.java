@@ -1,5 +1,6 @@
 package com.teachtouch.backend.retouch.dto;
 
+import com.teachtouch.backend.product.dto.ProductOptionDto;
 import com.teachtouch.backend.product.entity.Product;
 import com.teachtouch.backend.retouch.entity.TestOrderProduct;
 import lombok.AllArgsConstructor;
@@ -8,6 +9,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
@@ -19,6 +22,7 @@ public class TestOrderProductDto {
     private int price;
     private String imageUrl;
     private int quantity;
+    private List<ProductOptionDto> productOptions;
 
     public TestOrderProductDto(TestOrderProduct testOrderProduct) {
         Product product = testOrderProduct.getProduct();
@@ -28,6 +32,14 @@ public class TestOrderProductDto {
         this.price = product.getPrice();
         this.imageUrl = product.getImageUrl();
         this.quantity = testOrderProduct.getQuantity();
+        if (testOrderProduct.getProductOptions() != null && !testOrderProduct.getProductOptions().isEmpty()) {
+            this.productOptions = testOrderProduct.getProductOptions().stream()
+                    .map(option -> new ProductOptionDto(
+                            option.getOptionName(),
+                            option.getOptionValue()
+                    ))
+                    .collect(Collectors.toList());
+        }
     }
 
 }

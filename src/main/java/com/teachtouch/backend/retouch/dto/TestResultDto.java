@@ -1,5 +1,6 @@
 package com.teachtouch.backend.retouch.dto;
 
+import com.teachtouch.backend.product.dto.ProductOptionDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,6 +23,7 @@ public class TestResultDto {
         private String productName;
         private int correctQuantity; //정답 수량
         private int submittedQuantity; //제출한 수량
+        private List<ProductOptionDto> productOptions; //제출한 옵션
         private boolean isCorrect; //해당 상품 정답 여부
         private String status; //"정답", "갯수 틀림" 등등
     }
