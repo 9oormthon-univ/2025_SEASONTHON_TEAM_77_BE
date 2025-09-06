@@ -35,4 +35,7 @@ public class Product {
     @JoinColumn(name = "solve_history_id")
     private SolveHistory solveHistory;
 
+    @OneToMany(mappedBy = "product")
+    private List<ProductOption> productOptions = new ArrayList<>();
+
 }

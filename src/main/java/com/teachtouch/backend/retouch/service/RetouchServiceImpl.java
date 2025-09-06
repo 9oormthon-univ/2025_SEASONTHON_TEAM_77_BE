@@ -1,8 +1,11 @@
 package com.teachtouch.backend.retouch.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.teachtouch.backend.product.dto.CreateProductOptionDto;
+import com.teachtouch.backend.product.dto.ProductOptionDto;
 import com.teachtouch.backend.product.dto.ProductResponseDTO;
 import com.teachtouch.backend.product.entity.Product;
+import com.teachtouch.backend.product.entity.ProductOption;
 import com.teachtouch.backend.product.repository.ProductRepository;
 import com.teachtouch.backend.retouch.dto.*;
 import com.teachtouch.backend.retouch.entity.*;
@@ -63,11 +66,27 @@ public class RetouchServiceImpl implements RetouchService {
                 .map(productDto -> {
                     Product product = productRepository.findByName(productDto.getName())
                             .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다: " + productDto.getName()));
-                    return TestOrderProduct.builder()
+
+                    TestOrderProduct testOrderProduct = TestOrderProduct.builder()
                             .testOrder(testOrder)
                             .product(product)
                             .quantity(productDto.getQuantity())
                             .build();
+
+                    if (productDto.getProductOptions() != null && !productDto.getProductOptions().isEmpty()) {
+                        List<ProductOption> productOptions = productDto.getProductOptions().stream()
+                                .map(optionDto -> ProductOption.builder()
+                                        .optionName(optionDto.getOptionName())
+                                        .optionValue(optionDto.getOptionValue())
+                                        .product(product)
+                                        .testOrderProduct(testOrderProduct)
+                                        .build())
+                                .collect(Collectors.toList());
+
+                        testOrderProduct.setProductOptions(productOptions);
+                    }
+
+                    return testOrderProduct;
                 })
                 .collect(Collectors.toList());
 
@@ -162,18 +181,18 @@ public class RetouchServiceImpl implements RetouchService {
         List<TestResultDto.ProductComparisonDto> productResults = new ArrayList<>();
         int correctCount = 0;
 
-        // 정답 상품들을 Map으로 변환 (상품ID -> 수량)
-        Map<Long, Integer> correctMap = correctAnswers.stream()
+        // 정답 상품들을 Map으로 변환 (상품ID -> TestOrderProduct)
+        Map<Long, TestOrderProduct> correctProductMap = correctAnswers.stream()
                 .collect(Collectors.toMap(
                         top -> top.getProduct().getId(),
-                        TestOrderProduct::getQuantity
+                        top -> top
                 ));
 
-        // 제출한 상품들을 Map으로 변환 (상품ID -> 수량)
-        Map<Long, Integer> submittedMap = submitDto.getSubmittedProducts().stream()
+        // 제출한 상품들을 Map으로 변환 (상품ID -> SubmittedProductDto)
+        Map<Long, TestSubmitDto.SubmittedProductDto> submittedProductMap = submitDto.getSubmittedProducts().stream()
                 .collect(Collectors.toMap(
                         TestSubmitDto.SubmittedProductDto::getProductId,
-                        TestSubmitDto.SubmittedProductDto::getQuantity
+                        dto -> dto
                 ));
 
         // 정답 상품들 체크
@@ -181,23 +200,46 @@ public class RetouchServiceImpl implements RetouchService {
             Long productId = correctItem.getProduct().getId();
             String productName = correctItem.getProduct().getName();
             int correctQuantity = correctItem.getQuantity();
-            int submittedQuantity = submittedMap.getOrDefault(productId, 0);
+            List<ProductOptionDto> productOptions = correctItem.getProductOptions().stream()
+                    .map(option -> new ProductOptionDto(option.getOptionName(), option.getOptionValue()))
+                    .collect(Collectors.toList());
 
             TestResultDto.ProductComparisonDto comparison = new TestResultDto.ProductComparisonDto();
             comparison.setProductName(productName);
             comparison.setCorrectQuantity(correctQuantity);
-            comparison.setSubmittedQuantity(submittedQuantity);
+            comparison.setProductOptions(productOptions);
 
-            if (submittedQuantity == 0) {
+            TestSubmitDto.SubmittedProductDto submittedProduct = submittedProductMap.get(productId);
+
+            if (submittedProduct == null) {
+                // 상품이 제출되지 않음
+                comparison.setSubmittedQuantity(0);
                 comparison.setStatus("목록에서 빠짐");
                 comparison.setCorrect(false);
-            } else if (submittedQuantity == correctQuantity) {
-                comparison.setStatus("정답");
-                comparison.setCorrect(true);
-                correctCount++;
             } else {
-                comparison.setStatus("수량 틀림");
-                comparison.setCorrect(false);
+                int submittedQuantity = submittedProduct.getQuantity();
+                comparison.setSubmittedQuantity(submittedQuantity);
+
+                if (submittedQuantity != correctQuantity) {
+                    // 수량 틀림
+                    comparison.setStatus("수량 틀림");
+                    comparison.setCorrect(false);
+                } else {
+                    // 수량은 맞으니 옵션 비교
+                    boolean optionsCorrect = compareProductOptions(
+                            correctItem.getProductOptions(),
+                            submittedProduct.getProductOptions()
+                    );
+
+                    if (optionsCorrect) {
+                        comparison.setStatus("정답");
+                        comparison.setCorrect(true);
+                        correctCount++;
+                    } else {
+                        comparison.setStatus("옵션 틀림");
+                        comparison.setCorrect(false);
+                    }
+                }
             }
 
             productResults.add(comparison);
@@ -205,12 +247,12 @@ public class RetouchServiceImpl implements RetouchService {
 
         // 추가로 제출한 상품들 체크 (정답에 없는 상품)
         for (TestSubmitDto.SubmittedProductDto submitted : submitDto.getSubmittedProducts()) {
-            if (!correctMap.containsKey(submitted.getProductId())) {
+            if (!correctProductMap.containsKey(submitted.getProductId())) {
                 TestResultDto.ProductComparisonDto comparison = new TestResultDto.ProductComparisonDto();
                 comparison.setProductName(submitted.getProductName());
                 comparison.setCorrectQuantity(0);
                 comparison.setSubmittedQuantity(submitted.getQuantity());
-                comparison.setStatus("EXTRA");
+                comparison.setStatus("추가 상품");
                 comparison.setCorrect(false);
                 productResults.add(comparison);
             }
@@ -218,8 +260,7 @@ public class RetouchServiceImpl implements RetouchService {
 
         // 완전 정답 여부 체크
         boolean isCorrect = correctCount == correctAnswers.size() &&
-                submittedMap.size() == correctMap.size() &&
-                submittedMap.equals(correctMap);
+                submittedProductMap.size() == correctProductMap.size();
 
         // 피드백 생성
         String feedback = generateFeedback(isCorrect, correctCount, correctAnswers.size());
@@ -240,6 +281,36 @@ public class RetouchServiceImpl implements RetouchService {
 
         return result;
     }
+
+    private boolean compareProductOptions(List<ProductOption> correctOptions,
+                                          List<TestSubmitDto.SubmittedOptionDto> submittedOptions) {
+        // null 체크
+        if (correctOptions == null) correctOptions = new ArrayList<>();
+        if (submittedOptions == null) submittedOptions = new ArrayList<>();
+
+        // 개수가 다르면 틀림
+        if (correctOptions.size() != submittedOptions.size()) {
+            return false;
+        }
+
+        // 정답 옵션들을 Map으로 변환 (optionName -> optionValue)
+        Map<String, String> correctOptionMap = correctOptions.stream()
+                .collect(Collectors.toMap(
+                        ProductOption::getOptionName,
+                        ProductOption::getOptionValue
+                ));
+
+        // 제출한 옵션들을 Map으로 변환
+        Map<String, String> submittedOptionMap = submittedOptions.stream()
+                .collect(Collectors.toMap(
+                        TestSubmitDto.SubmittedOptionDto::getOptionName,
+                        TestSubmitDto.SubmittedOptionDto::getOptionValue
+                ));
+
+        // 모든 옵션이 정확히 일치하는지 확인
+        return correctOptionMap.equals(submittedOptionMap);
+    }
+
 
     private String generateSubmittedAnswer(List<TestSubmitDto.SubmittedProductDto> submittedProducts) {
         return submittedProducts.stream()

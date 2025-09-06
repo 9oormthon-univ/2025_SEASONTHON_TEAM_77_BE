@@ -21,5 +21,14 @@ public class TestSubmitDto {
         private Long productId;
         private String productName;
         private int quantity;
+        private List<SubmittedOptionDto> productOptions;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SubmittedOptionDto {
+        private String optionName;
+        private String optionValue;
     }
 }
