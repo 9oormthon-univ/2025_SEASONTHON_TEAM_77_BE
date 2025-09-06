@@ -26,6 +26,7 @@ public class TestResultDto {
         private List<ProductOptionDto> productOptions; //제출한 옵션
         private boolean isCorrect; //해당 상품 정답 여부
         private String status; //"정답", "갯수 틀림" 등등
+        private DetailedGradingResult detailedResult;
     }
 
     @Data
@@ -35,5 +36,14 @@ public class TestResultDto {
         private String testTitle;
         private String correctAnswer; //정답 (예: "빅맥 2개 + 콜라 2개")
         private String submittedAnswer; //제출한 답안
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DetailedGradingResult {
+        private boolean menuSelection;      // 메뉴 선택
+        private boolean sizeSelection;      // 사이즈 선택
+        private boolean quantitySelection;  // 수량 선택
     }
 }
