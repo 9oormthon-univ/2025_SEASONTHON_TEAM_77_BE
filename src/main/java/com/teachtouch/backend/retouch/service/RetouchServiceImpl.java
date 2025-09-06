@@ -184,60 +184,68 @@ public class RetouchServiceImpl implements RetouchService {
         // 정답 상품들을 Map으로 변환 (상품ID -> TestOrderProduct)
         Map<String, TestOrderProduct> correctProductMap = correctAnswers.stream()
                 .collect(Collectors.toMap(
-                        top -> top.getProduct().getName(),
+                        top -> normalizeProductName(top.getProduct().getName()),
                         top -> top
                 ));
 
         // 제출한 상품들을 Map으로 변환 (상품ID -> SubmittedProductDto)
         Map<String, TestSubmitDto.SubmittedProductDto> submittedProductMap = submitDto.getSubmittedProducts().stream()
                 .collect(Collectors.toMap(
-                        TestSubmitDto.SubmittedProductDto::getProductName,
+                        dto -> normalizeProductName(dto.getProductName()),
                         dto -> dto
                 ));
 
         // 정답 상품들 체크
         for (TestOrderProduct correctItem : correctAnswers) {
-            String productName = correctItem.getProduct().getName();
+            String normalizedProductName = normalizeProductName(correctItem.getProduct().getName());
+            String originalProductName = correctItem.getProduct().getName();
             int correctQuantity = correctItem.getQuantity();
+
             List<ProductOptionDto> productOptions = correctItem.getProductOptions().stream()
                     .map(option -> new ProductOptionDto(option.getOptionName(), option.getOptionValue()))
                     .collect(Collectors.toList());
 
             TestResultDto.ProductComparisonDto comparison = new TestResultDto.ProductComparisonDto();
-            comparison.setProductName(productName);
+            comparison.setProductName(originalProductName);
             comparison.setCorrectQuantity(correctQuantity);
             comparison.setProductOptions(productOptions);
 
-            TestSubmitDto.SubmittedProductDto submittedProduct = submittedProductMap.get(productName);
+            TestSubmitDto.SubmittedProductDto submittedProduct = submittedProductMap.get(normalizedProductName);
 
             if (submittedProduct == null) {
                 // 상품이 제출되지 않음
                 comparison.setSubmittedQuantity(0);
                 comparison.setStatus("목록에서 빠짐");
                 comparison.setCorrect(false);
+                comparison.setDetailedResult(new TestResultDto.DetailedGradingResult(false, false, false));
             } else {
                 int submittedQuantity = submittedProduct.getQuantity();
                 comparison.setSubmittedQuantity(submittedQuantity);
 
-                if (submittedQuantity != correctQuantity) {
-                    // 수량 틀림
-                    comparison.setStatus("수량 틀림");
-                    comparison.setCorrect(false);
-                } else {
-                    // 수량은 맞으니 옵션 비교
-                    boolean optionsCorrect = compareProductOptions(
-                            correctItem.getProductOptions(),
-                            submittedProduct.getProductOptions()
-                    );
+                TestResultDto.DetailedGradingResult detailedResult = performDetailedGrading(
+                        correctItem, submittedProduct
+                );
+                comparison.setDetailedResult(detailedResult);
 
-                    if (optionsCorrect) {
-                        comparison.setStatus("정답");
-                        comparison.setCorrect(true);
-                        correctCount++;
+                // 전체 정답 여부 판단
+                boolean allCorrect = detailedResult.isMenuSelection() &&
+                        detailedResult.isSizeSelection() &&
+                        detailedResult.isQuantitySelection();
+
+                if (allCorrect) {
+                    comparison.setStatus("정답");
+                    comparison.setCorrect(true);
+                    correctCount++;
+                } else {
+                    // 구체적인 오답 유형 설정
+                    if (!detailedResult.isQuantitySelection()) {
+                        comparison.setStatus("수량 틀림");
+                    } else if (!detailedResult.isSizeSelection()) {
+                        comparison.setStatus("사이즈 틀림");
                     } else {
-                        comparison.setStatus("옵션 틀림");
-                        comparison.setCorrect(false);
+                        comparison.setStatus("메뉴 틀림");
                     }
+                    comparison.setCorrect(false);
                 }
             }
 
@@ -246,13 +254,21 @@ public class RetouchServiceImpl implements RetouchService {
 
         // 추가로 제출한 상품들 체크 (정답에 없는 상품)
         for (TestSubmitDto.SubmittedProductDto submitted : submitDto.getSubmittedProducts()) {
-            if (!correctProductMap.containsKey(submitted.getProductName())) {
+            String normalizedName = normalizeProductName(submitted.getProductName());
+            if (!correctProductMap.containsKey(normalizedName)) {
                 TestResultDto.ProductComparisonDto comparison = new TestResultDto.ProductComparisonDto();
                 comparison.setProductName(submitted.getProductName());
                 comparison.setCorrectQuantity(0);
                 comparison.setSubmittedQuantity(submitted.getQuantity());
                 comparison.setStatus("추가 상품");
                 comparison.setCorrect(false);
+
+                // 추가 상품의 경우 정답과 비교하여 세부 채점
+                TestResultDto.DetailedGradingResult detailedResult = performDetailedGradingForExtraProduct(
+                        correctAnswers, submitted
+                );
+                comparison.setDetailedResult(detailedResult);
+
                 if (submitted.getProductOptions() != null && !submitted.getProductOptions().isEmpty()) {
                     List<ProductOptionDto> submittedOptions = submitted.getProductOptions().stream()
                             .map(option -> new ProductOptionDto(option.getOptionName(), option.getOptionValue()))
@@ -262,6 +278,7 @@ public class RetouchServiceImpl implements RetouchService {
                 productResults.add(comparison);
             }
         }
+
 
         // 완전 정답 여부 체크
         boolean isCorrect = correctCount == correctAnswers.size() &&
@@ -287,35 +304,80 @@ public class RetouchServiceImpl implements RetouchService {
         return result;
     }
 
-    private boolean compareProductOptions(List<ProductOption> correctOptions,
-                                          List<TestSubmitDto.SubmittedOptionDto> submittedOptions) {
-        // null 체크
+    // 추가 상품에 대한 세부 채점 (정답 상품들과 비교)
+    private TestResultDto.DetailedGradingResult performDetailedGradingForExtraProduct(
+            List<TestOrderProduct> correctAnswers,
+            TestSubmitDto.SubmittedProductDto submittedProduct) {
+
+        // 메뉴 선택: 항상 false (추가 상품이므로)
+        boolean menuCorrect = false;
+
+        // 수량과 사이즈는 정답과 비교하여 판단
+        boolean quantityCorrect = false;
+        boolean sizeCorrect = false;
+
+        // 정답 중에서 수량과 사이즈가 일치하는 것이 있는지 확인
+        for (TestOrderProduct correctItem : correctAnswers) {
+            // 수량 비교
+            if (correctItem.getQuantity() == submittedProduct.getQuantity()) {
+                quantityCorrect = true;
+            }
+
+            // 사이즈 비교
+            if (checkSizeOption(correctItem.getProductOptions(), submittedProduct.getProductOptions())) {
+                sizeCorrect = true;
+            }
+        }
+
+        return new TestResultDto.DetailedGradingResult(menuCorrect, sizeCorrect, quantityCorrect);
+    }
+
+
+    // 상품명 정규화 메서드 (대소문자, 공백 문제 해결)
+    private String normalizeProductName(String productName) {
+        return productName != null ? productName.trim().toLowerCase() : "";
+    }
+
+    // 세부 채점 수행 메서드
+    private TestResultDto.DetailedGradingResult performDetailedGrading(
+            TestOrderProduct correctItem,
+            TestSubmitDto.SubmittedProductDto submittedProduct) {
+
+        // 1. 메뉴 선택 체크 (상품명이 일치하는지)
+        boolean menuCorrect = normalizeProductName(correctItem.getProduct().getName())
+                .equals(normalizeProductName(submittedProduct.getProductName()));
+
+        // 2. 수량 선택 체크
+        boolean quantityCorrect = correctItem.getQuantity() == submittedProduct.getQuantity();
+
+        // 3. 사이즈 선택 체크 (옵션에서 사이즈 확인)
+        boolean sizeCorrect = checkSizeOption(correctItem.getProductOptions(), submittedProduct.getProductOptions());
+
+        return new TestResultDto.DetailedGradingResult(menuCorrect, sizeCorrect, quantityCorrect);
+    }
+
+    // 사이즈 옵션 체크 메서드
+    private boolean checkSizeOption(List<ProductOption> correctOptions, List<TestSubmitDto.SubmittedOptionDto> submittedOptions) {
         if (correctOptions == null) correctOptions = new ArrayList<>();
         if (submittedOptions == null) submittedOptions = new ArrayList<>();
 
-        // 개수가 다르면 틀림
-        if (correctOptions.size() != submittedOptions.size()) {
-            return false;
-        }
+        // 정답에서 사이즈 옵션 찾기
+        String correctSize = correctOptions.stream()
+                .filter(option -> "사이즈".equals(option.getOptionName()))
+                .map(ProductOption::getOptionValue)
+                .findFirst()
+                .orElse(null);
 
-        // 정답 옵션들을 Map으로 변환 (optionName -> optionValue)
-        Map<String, String> correctOptionMap = correctOptions.stream()
-                .collect(Collectors.toMap(
-                        ProductOption::getOptionName,
-                        ProductOption::getOptionValue
-                ));
+        // 제출에서 사이즈 옵션 찾기
+        String submittedSize = submittedOptions.stream()
+                .filter(option -> "사이즈".equals(option.getOptionName()))
+                .map(TestSubmitDto.SubmittedOptionDto::getOptionValue)
+                .findFirst()
+                .orElse(null);
 
-        // 제출한 옵션들을 Map으로 변환
-        Map<String, String> submittedOptionMap = submittedOptions.stream()
-                .collect(Collectors.toMap(
-                        TestSubmitDto.SubmittedOptionDto::getOptionName,
-                        TestSubmitDto.SubmittedOptionDto::getOptionValue
-                ));
-
-        // 모든 옵션이 정확히 일치하는지 확인
-        return correctOptionMap.equals(submittedOptionMap);
+        // 둘 다 null이거나 같으면 정답
+        return Objects.equals(correctSize, submittedSize);
     }
-
 
     private String generateSubmittedAnswer(List<TestSubmitDto.SubmittedProductDto> submittedProducts) {
         return submittedProducts.stream()
