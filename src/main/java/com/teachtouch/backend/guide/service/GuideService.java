@@ -12,7 +12,6 @@ public interface GuideService {
     List<Guide> findAll();
     Optional<Guide> findById(Long id);
     List<Guide> searchByKeyword(String keyword);
-    void markStepAsCompleted(Long stepId, Long userId);
     List<String> getCompletedStepCodes(Long userId, Long guideId);
 
     // 추가
@@ -20,4 +19,7 @@ public interface GuideService {
     Map<Long, Boolean> areGuidesCompleted(Long userId, List<Long> guideIds);
     void markGuideAsCompleted(Long guideId, Long userId); // 추후 전용 API용
     void deleteGuide(Long guideId);
+
+    void markStepAsCompleted(String stepCode, Long userId);
+
 }

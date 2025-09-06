@@ -146,34 +146,54 @@ public class GuideServiceImpl implements GuideService {
 
     /* === Step 단위 완료 === */
     @Override
-    public void markStepAsCompleted(Long stepId, Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("유저 없음: " + userId));
-        Step step = stepRepository.findById(stepId)
-                .orElseThrow(() -> new IllegalArgumentException("단계 없음: " + stepId));
+    @Transactional
+    public void markStepAsCompleted(String stepCode, Long userId) {
+        // Step 찾기
+        Step step = stepRepository.findByStepCode(stepCode)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 stepCode: " + stepCode));
 
+        // User 찾기
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저: " + userId));
+
+        // 기존 기록 있는지 확인
         StepProgress progress = stepProgressRepository.findByUserAndStep(user, step)
                 .orElse(StepProgress.builder()
                         .user(user)
                         .step(step)
-                        .completed(true)
-                        .build());
+                        .completed(false)
+                        .build()
+                );
 
+        // 완료 처리
         progress.setCompleted(true);
         stepProgressRepository.save(progress);
     }
 
-    @Override @Transactional(readOnly = true)
-    public List<String> getCompletedStepCodes(Long userId, Long guideId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("유저 없음: " + userId));
 
-        return stepProgressRepository
-                .findByUserAndStep_Guide_IdAndCompletedTrue(user, guideId)
+//    @Override @Transactional(readOnly = true)
+//    public List<String> getCompletedStepCodes(Long userId, Long guideId) {
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() -> new IllegalArgumentException("유저 없음: " + userId));
+//
+//        return stepProgressRepository
+//                .findByUserAndStep_Guide_IdAndCompletedTrue(user, guideId)
+//                .stream()
+//                .map(progress -> progress.getStep().getStepCode())
+//                .toList();
+//    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> getCompletedStepCodes(Long userId, Long guideId) {
+        return stepProgressRepository.findByUserIdAndStep_Guide_IdAndCompletedTrue(userId, guideId)
                 .stream()
-                .map(progress -> progress.getStep().getStepCode())
+                .map(sp -> sp.getStep().getStepCode())
                 .toList();
     }
+
+
+
 
     /* === Guide 단위 완료 === */
     @Override @Transactional(readOnly = true)
@@ -229,4 +249,6 @@ public class GuideServiceImpl implements GuideService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 가이드를 찾을 수 없습니다: " + guideId));
         guideRepository.delete(guide);
     }
+
+
 }

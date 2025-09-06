@@ -84,28 +84,51 @@ public class GuideController {
         );
     }
 
-    /* Step 단위 완료 저장 */
-    @PostMapping("/steps/{stepId}/complete")
-    public ResponseEntity<Void> completeStep(@PathVariable Long stepId,
-                                             @AuthenticationPrincipal UserDetails user) {
-        Long userId = ((CustomUserDetails) user).getUser().getId();
-        guideService.markStepAsCompleted(stepId, userId);
+//    /* Step 단위 완료 저장 */
+//    @PostMapping("/steps/{stepId}/complete")
+//    public ResponseEntity<Void> completeStep(@PathVariable Long stepId,
+//                                             @AuthenticationPrincipal UserDetails user) {
+//        Long userId = ((CustomUserDetails) user).getUser().getId();
+//        guideService.markStepAsCompleted(stepId, userId);
+//        return ResponseEntity.ok().build();
+//    }
+
+
+    //    /* Step 단위 완료 조회 */
+//    @GetMapping("/{guideId}/steps/progress")
+//    public ResponseEntity<List<String>> getUserCompletedSteps(
+//            @PathVariable Long guideId,
+//            @AuthenticationPrincipal CustomUserDetails user) {
+//
+//        Long userId = user.getUser().getId();
+//        List<String> completed = guideService.getCompletedStepCodes(userId, guideId);
+//        return ResponseEntity.ok(completed);
+//    }
+
+    /* Step 단위 완료 저장 -> 1-1. 1-2 방식으로 저장할 수 있게 수정*/
+    @PostMapping("/{stepCode}/complete")
+    public ResponseEntity<Void> completeStep(
+            @PathVariable String stepCode,
+            @AuthenticationPrincipal CustomUserDetails user
+    ) {
+        Long userId = user.getUser().getId();
+        guideService.markStepAsCompleted(stepCode, userId);
         return ResponseEntity.ok().build();
     }
 
-    /* Step 단위 완료 조회 */
+    /* Step 단위 완료 조회 -> 특정 가이드 내 사용자가 완료한 stepCode 목록(1-1,1-2) 반환 */
     @GetMapping("/{guideId}/steps/progress")
-    public ResponseEntity<List<String>> getUserCompletedSteps(
+    public ResponseEntity<List<String>> getCompletedSteps(
             @PathVariable Long guideId,
-            @AuthenticationPrincipal CustomUserDetails user) {
-
+            @AuthenticationPrincipal CustomUserDetails user
+    ) {
         Long userId = user.getUser().getId();
-        List<String> completed = guideService.getCompletedStepCodes(userId, guideId);
-        return ResponseEntity.ok(completed);
+        List<String> completedStepCodes = guideService.getCompletedStepCodes(userId, guideId);
+        return ResponseEntity.ok(completedStepCodes);
     }
 
     /* Guide 단위 완료 저장 */
-    @PostMapping("/{guideId}/complete")
+    @PostMapping("/{guideId}/guides/complete")
     public ResponseEntity<Void> completeGuide(
             @PathVariable Long guideId,
             @AuthenticationPrincipal CustomUserDetails user) {
