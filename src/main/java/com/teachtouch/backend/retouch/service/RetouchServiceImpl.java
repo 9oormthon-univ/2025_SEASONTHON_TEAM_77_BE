@@ -189,9 +189,9 @@ public class RetouchServiceImpl implements RetouchService {
                 ));
 
         // 제출한 상품들을 Map으로 변환 (상품ID -> SubmittedProductDto)
-        Map<Long, TestSubmitDto.SubmittedProductDto> submittedProductMap = submitDto.getSubmittedProducts().stream()
+        Map<String, TestSubmitDto.SubmittedProductDto> submittedProductMap = submitDto.getSubmittedProducts().stream()
                 .collect(Collectors.toMap(
-                        TestSubmitDto.SubmittedProductDto::getProductId,
+                        TestSubmitDto.SubmittedProductDto::getProductName,
                         dto -> dto
                 ));
 
@@ -247,7 +247,7 @@ public class RetouchServiceImpl implements RetouchService {
 
         // 추가로 제출한 상품들 체크 (정답에 없는 상품)
         for (TestSubmitDto.SubmittedProductDto submitted : submitDto.getSubmittedProducts()) {
-            if (!correctProductMap.containsKey(submitted.getProductId())) {
+            if (!correctProductMap.containsKey(submitted.getProductName())) {
                 TestResultDto.ProductComparisonDto comparison = new TestResultDto.ProductComparisonDto();
                 comparison.setProductName(submitted.getProductName());
                 comparison.setCorrectQuantity(0);
@@ -348,7 +348,7 @@ public class RetouchServiceImpl implements RetouchService {
         // 3. 제출한 상품들을 SolveHistoryProduct로 저장
         List<SolveHistoryProduct> solveHistoryProducts = submitDto.getSubmittedProducts().stream()
                 .map(dto -> {
-                    Product product = productRepository.findById(dto.getProductId())
+                    Product product = productRepository.findByName(dto.getProductName())
                             .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
 
                     return SolveHistoryProduct.builder()

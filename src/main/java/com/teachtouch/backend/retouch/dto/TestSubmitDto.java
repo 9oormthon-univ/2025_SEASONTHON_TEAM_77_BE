@@ -18,7 +18,7 @@ public class TestSubmitDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class SubmittedProductDto {
-        private Long productId;
+        //private Long productId;
         private String productName;
         private int quantity;
         private List<SubmittedOptionDto> productOptions;
