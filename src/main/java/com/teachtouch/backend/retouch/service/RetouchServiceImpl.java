@@ -254,6 +254,12 @@ public class RetouchServiceImpl implements RetouchService {
                 comparison.setSubmittedQuantity(submitted.getQuantity());
                 comparison.setStatus("추가 상품");
                 comparison.setCorrect(false);
+                if (submitted.getProductOptions() != null && !submitted.getProductOptions().isEmpty()) {
+                    List<ProductOptionDto> submittedOptions = submitted.getProductOptions().stream()
+                            .map(option -> new ProductOptionDto(option.getOptionName(), option.getOptionValue()))
+                            .collect(Collectors.toList());
+                    comparison.setProductOptions(submittedOptions);
+                }
                 productResults.add(comparison);
             }
         }
