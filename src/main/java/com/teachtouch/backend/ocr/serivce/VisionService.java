@@ -9,53 +9,64 @@ import com.google.cloud.vision.v1.Image;
 import com.google.cloud.vision.v1.ImageAnnotatorClient;
 import com.google.protobuf.ByteString;
 import org.springframework.stereotype.Service;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.*;
-import java.util.stream.Collectors;
 
+import java.util.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class VisionService {
 
-    public String extractUiComponentsFromImageUrl(String imageUrl) throws Exception {
-        ByteString imgBytes = ByteString.readFrom(new URL(imageUrl).openStream());
+    public String extractUiComponentsFromFile(MultipartFile file) throws Exception {
+        ByteString imgBytes = ByteString.readFrom(file.getInputStream());
         Image img = Image.newBuilder().setContent(imgBytes).build();
-        Feature feat = Feature.newBuilder().setType(Feature.Type.DOCUMENT_TEXT_DETECTION).build();
+        return processImage(img);
+    }
+
+    private String processImage(Image img) throws Exception {
+        Feature feat = Feature.newBuilder()
+                .setType(Feature.Type.DOCUMENT_TEXT_DETECTION)
+                .build();
+
         AnnotateImageRequest request = AnnotateImageRequest.newBuilder()
-                .addFeatures(feat).setImage(img).build();
+                .addFeatures(feat)
+                .setImage(img)
+                .build();
 
         try (ImageAnnotatorClient client = ImageAnnotatorClient.create()) {
-            AnnotateImageResponse res = client.batchAnnotateImages(List.of(request)).getResponses(0);
-            if (res.hasError()) return "Error: " + res.getError().getMessage();
+            AnnotateImageResponse res =
+                    client.batchAnnotateImages(Collections.singletonList(request))
+                            .getResponses(0);
+
+            if (res.hasError()) {
+                return "Error: " + res.getError().getMessage();
+            }
 
             List<Map<String, Object>> components = new ArrayList<>();
+            res.getFullTextAnnotation().getPagesList().forEach(page ->
+                    page.getBlocksList().forEach(block ->
+                            block.getParagraphsList().forEach(para ->
+                                    para.getWordsList().forEach(word -> {
+                                        StringBuilder wordText = new StringBuilder();
+                                        word.getSymbolsList().forEach(symbol ->
+                                                wordText.append(symbol.getText())
+                                        );
+                                        String text = wordText.toString();
 
-            for (var page : res.getFullTextAnnotation().getPagesList()) {
-                for (var block : page.getBlocksList()) {
-                    for (var para : block.getParagraphsList()) {
-                        for (var word : para.getWordsList()) {
-                            StringBuilder wordText = new StringBuilder();
-                            for (var symbol : word.getSymbolsList()) {
-                                wordText.append(symbol.getText());
-                            }
-                            String text = wordText.toString();
+                                        var vertices = word.getBoundingBox().getVerticesList();
+                                        int x = (vertices.get(0).getX() + vertices.get(2).getX()) / 2;
+                                        int y = (vertices.get(0).getY() + vertices.get(2).getY()) / 2;
 
-                            var vertices = word.getBoundingBox().getVerticesList();
-                            int x = (vertices.get(0).getX() + vertices.get(2).getX()) / 2;
-                            int y = (vertices.get(0).getY() + vertices.get(2).getY()) / 2;
+                                        if (text.length() <= 1 && text.matches("[()0-9]+")) return;
 
-                            if (text.length() <= 1 && text.matches("[()0-9]+")) continue;
-
-                            Map<String, Object> item = new LinkedHashMap<>();
-                            item.put("label", text);
-                            item.put("x", x);
-                            item.put("y", y);
-                            components.add(item);
-                        }
-                    }
-                }
-            }
+                                        Map<String, Object> item = new LinkedHashMap<>();
+                                        item.put("label", text);
+                                        item.put("x", x);
+                                        item.put("y", y);
+                                        components.add(item);
+                                    })
+                            )
+                    )
+            );
 
             List<Map<String, Object>> merged = mergeByLine(components);
 
@@ -63,6 +74,7 @@ public class VisionService {
             return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(merged);
         }
     }
+
 
     private List<Map<String, Object>> mergeByLine(List<Map<String, Object>> items) {
         List<Map<String, Object>> merged = new ArrayList<>();
