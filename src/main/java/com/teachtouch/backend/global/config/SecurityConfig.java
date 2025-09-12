@@ -50,7 +50,8 @@ public class SecurityConfig {
                                 "/api/v1.0/retouch/progress/all",
                                 "/api/v1.0/retouch/progress/*",
                                 "/api/v1.0/retouch/submit",
-                                "/api/v1.0/retouch/wrong"
+                                "/api/v1.0/retouch/wrong",
+                                "/api/v1.0/ocr/extract-ui"
 
 
                         ).permitAll()
