@@ -56,6 +56,9 @@ dependencies {
 
 	// Google TTS
 	implementation 'com.google.cloud:google-cloud-texttospeech:2.68.0'
+
+	// Google Vision
+	implementation 'com.google.cloud:google-cloud-vision:3.34.0'
 }
 
 
