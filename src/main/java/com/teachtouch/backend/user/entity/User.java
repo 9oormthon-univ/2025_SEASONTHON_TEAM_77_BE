@@ -1,6 +1,7 @@
 package com.teachtouch.backend.user.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.teachtouch.backend.attendance.entity.Attendance;
 import com.teachtouch.backend.global.entity.BaseEntity;
 import com.teachtouch.backend.retouch.entity.SolveHistory;
 import jakarta.persistence.*;
@@ -51,5 +52,8 @@ public class User extends BaseEntity {
 
     @Column
     private String profileImageUrl;
+
+    @OneToMany(mappedBy = "user")
+    private List<Attendance> attendance = new ArrayList<>();
 
     }
