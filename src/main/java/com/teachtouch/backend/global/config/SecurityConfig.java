@@ -51,7 +51,10 @@ public class SecurityConfig {
                                 "/api/v1.0/retouch/progress/*",
                                 "/api/v1.0/retouch/submit",
                                 "/api/v1.0/retouch/wrong",
-                                "/api/v1.0/ocr/extract-ui"
+                                "/api/v1.0/ocr/extract-ui",
+                                "/api/v1.0/attendance/check-in",
+                                "api/v1.0/attendance/history",
+                                "api/v1.0/attendance/weekly-status"
 
 
                         ).permitAll()
