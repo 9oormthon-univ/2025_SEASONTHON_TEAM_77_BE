@@ -52,7 +52,7 @@ public class SecurityConfig {
                                 "/api/v1.0/retouch/submit",
                                 "/api/v1.0/retouch/wrong",
                                 "/api/v1.0/ocr/extract-ui",
-                                "/api/v1.0/ocr/ai"
+                                "/api/v1.0/ocr/generate-from-image"
 
 
                         ).permitAll()
