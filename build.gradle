@@ -59,6 +59,12 @@ dependencies {
 
 	// Google Vision
 	implementation 'com.google.cloud:google-cloud-vision:3.34.0'
+
+	// OpenAI 호출용
+	implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
+	// JSON 처리
+	implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.1'
 }
 
 
