@@ -55,7 +55,8 @@ public class SecurityConfig {
                                 "/api/v1.0/attendance/check-in",
                                 "/api/v1.0/attendance/history",
                                 "/api/v1.0/attendance/weekly-status",
-                                "/api/v1.0/ocr/generate-from-image"
+                                "/api/v1.0/ocr/generate-from-image",
+                                "/ws/**"
 
 
                         ).permitAll()

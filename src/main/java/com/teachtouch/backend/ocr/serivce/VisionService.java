@@ -1,5 +1,6 @@
 package com.teachtouch.backend.ocr.serivce;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.vision.v1.AnnotateImageRequest;
 import com.google.cloud.vision.v1.AnnotateImageResponse;
@@ -122,6 +123,28 @@ public class VisionService {
         item.put("x", x);
         item.put("y", y);
         return item;
+    }
+
+    public String extractTextFromImage(Image img) throws Exception {
+        String jsonResponse = processImage(img);
+
+        if(jsonResponse.startsWith("Error:")) {
+            System.err.println("Google Vision API Error detected: " + jsonResponse);
+            return "";
+        }
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode rootNode = mapper.readTree(jsonResponse);
+        StringBuilder textBuilder = new StringBuilder();
+
+        if(rootNode.isArray()) {
+            for (JsonNode node : rootNode) {
+                if(node.has("label")) {
+                    textBuilder.append(node.get("label").asText()).append(" ");
+                }
+            }
+        }
+        return textBuilder.toString().trim();
     }
 
 }
