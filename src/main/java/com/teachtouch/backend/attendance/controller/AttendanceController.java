@@ -1,6 +1,7 @@
 package com.teachtouch.backend.attendance.controller;
 
 import com.teachtouch.backend.attendance.dto.AttendanceResponseDto;
+import com.teachtouch.backend.attendance.dto.CheckInResponseDto;
 import com.teachtouch.backend.attendance.dto.WeeklyAttendanceResponseDto;
 import com.teachtouch.backend.attendance.service.AttendanceService;
 import com.teachtouch.backend.global.security.CustomUserDetails;
@@ -22,9 +23,9 @@ public class AttendanceController {
     private final AttendanceService attendanceService;
 
     @PostMapping("/check-in")
-    public ResponseEntity<Void> checkIn(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        attendanceService.checkIn(userDetails.getUser().getId());
-        return ResponseEntity.ok().build();
+    public ResponseEntity<CheckInResponseDto> checkIn(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        CheckInResponseDto response = attendanceService.checkIn(userDetails.getUser().getId());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/history")
