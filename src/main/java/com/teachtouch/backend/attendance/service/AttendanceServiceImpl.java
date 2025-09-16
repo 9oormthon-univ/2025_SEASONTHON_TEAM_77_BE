@@ -1,6 +1,7 @@
 package com.teachtouch.backend.attendance.service;
 
 import com.teachtouch.backend.attendance.dto.AttendanceResponseDto;
+import com.teachtouch.backend.attendance.dto.CheckInResponseDto;
 import com.teachtouch.backend.attendance.dto.WeeklyAttendanceResponseDto;
 import com.teachtouch.backend.attendance.entity.Attendance;
 import com.teachtouch.backend.attendance.repository.AttendanceRepository;
@@ -27,13 +28,13 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final UserRepository userRepository;
 
     @Override
-    public void checkIn(Long userId) {
+    public CheckInResponseDto checkIn(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 유저를 찾을 수 없습니다: " + userId));
 
         LocalDate today = LocalDate.now();
         if(attendanceRepository.existsByUserAndAttendanceDate(user, today)) {
-            throw new IllegalArgumentException("이미 오늘 출석체크 했습니다");
+            return CheckInResponseDto.alreadyCheckIn("이미 오늘 출석체크를 완료했습니다.");
         }
 
         Attendance attendance = Attendance.builder()
@@ -41,6 +42,8 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .attendanceDate(today)
                 .build();
         attendanceRepository.save(attendance);
+
+        return CheckInResponseDto.success("출석체크가 완료되었습니다.");
     }
 
     @Override
