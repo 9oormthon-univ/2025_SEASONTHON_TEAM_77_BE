@@ -2,6 +2,8 @@ package com.teachtouch.backend.global.config;
 
 import com.teachtouch.backend.global.jwt.JwtAuthenticationFilter;
 import com.teachtouch.backend.global.jwt.JwtProvider;
+import com.teachtouch.backend.global.security.CustomAccessDeniedHandler;
+import com.teachtouch.backend.global.security.CustomAuthenticationEntryPoint;
 import com.teachtouch.backend.global.security.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -21,6 +23,9 @@ public class SecurityConfig {
 
     private final JwtProvider jwtProvider;
     private final CustomUserDetailsService customUserDetailsService;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
+    private final CustomAccessDeniedHandler accessDeniedHandler;
+
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
@@ -34,7 +39,7 @@ public class SecurityConfig {
                                 "api/v1.0/user/login",
                                 "api/v1.0/user/check-id",
                                 "api/v1.0/user/reissue",
-                                "/api/v1.0/user/logout",
+//                                "/api/v1.0/user/logout",
                                 "/api/v1.0/products",
                                 "/api/v1.0/products/batch",
                                 "/api/v1.0/examples",
@@ -52,8 +57,8 @@ public class SecurityConfig {
                                 "/api/v1.0/retouch/submit",
                                 "/api/v1.0/retouch/wrong",
                                 "/api/v1.0/ocr/extract-ui",
-                                "/api/v1.0/attendance/check-in",
-                                "/api/v1.0/attendance/history",
+//                                "/api/v1.0/attendance/check-in",
+//                                "/api/v1.0/attendance/history",
                                 "/api/v1.0/attendance/weekly-status",
                                 "/api/v1.0/ocr/generate-from-image",
                                 "/ws/**"
@@ -61,6 +66,10 @@ public class SecurityConfig {
 
                         ).permitAll()
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
                 )
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtProvider,customUserDetailsService),
