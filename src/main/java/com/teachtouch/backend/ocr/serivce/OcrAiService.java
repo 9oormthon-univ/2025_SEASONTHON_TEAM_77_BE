@@ -79,7 +79,7 @@ public class OcrAiService {
         requestBodyMap.put("temperature", temperature);
         requestBodyMap.put("max_tokens", maxTokens);
         requestBodyMap.put("messages", List.of(
-                Map.of("role", "system", "content", "너는 디지털 약자를 도와주는 친절한 안내자야."),
+                Map.of("role", "system", "content", "너는 디지털 약자를 도와주는 친절한 키오스크 안내자야. 위치를 시각적으로 알려주고, 헷갈릴 수 있는 부분은 꼭 짚어줘야 해. '메뉴 이름을 하나하나 말하지 말고 종류나 그룹으로 자연스럽게 묶어줘. 형식보다는 사람에게 말하듯 도와주는 느낌으로 써줘."),
                 Map.of("role", "user", "content", prompt)
         ));
 
