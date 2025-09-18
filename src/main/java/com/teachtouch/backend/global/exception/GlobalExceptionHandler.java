@@ -1,5 +1,8 @@
 package com.teachtouch.backend.global.exception;
 
+import com.teachtouch.backend.retouch.exception.ProductNotFoundException;
+import com.teachtouch.backend.retouch.exception.TestNotFoundException;
+import com.teachtouch.backend.retouch.exception.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartException;
@@ -46,5 +49,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("예상치 못한 오류가 발생했습니다.\n지속될 경우 관리자에게 문의해 주세요.");
+    }
+
+    // 4. Retouch 관련 예외 처리 (새로 추가된 부분)
+    @ExceptionHandler(TestNotFoundException.class)
+    public ResponseEntity<String> handleTestNotFound(TestNotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body("요청하신 테스트를 찾을 수 없습니다. 상세 정보: " + ex.getMessage());
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<String> handleUserNotFound(UserNotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body("요청하신 사용자를 찾을 수 없습니다. 상세 정보: " + ex.getMessage());
+    }
+
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ResponseEntity<String> handleProductNotFound(ProductNotFoundException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body("요청하신 상품을 찾을 수 없습니다. 상세 정보: " + ex.getMessage());
     }
 }
