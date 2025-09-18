@@ -84,26 +84,6 @@ public class GuideController {
         );
     }
 
-//    /* Step 단위 완료 저장 */
-//    @PostMapping("/steps/{stepId}/complete")
-//    public ResponseEntity<Void> completeStep(@PathVariable Long stepId,
-//                                             @AuthenticationPrincipal UserDetails user) {
-//        Long userId = ((CustomUserDetails) user).getUser().getId();
-//        guideService.markStepAsCompleted(stepId, userId);
-//        return ResponseEntity.ok().build();
-//    }
-
-
-    //    /* Step 단위 완료 조회 */
-//    @GetMapping("/{guideId}/steps/progress")
-//    public ResponseEntity<List<String>> getUserCompletedSteps(
-//            @PathVariable Long guideId,
-//            @AuthenticationPrincipal CustomUserDetails user) {
-//
-//        Long userId = user.getUser().getId();
-//        List<String> completed = guideService.getCompletedStepCodes(userId, guideId);
-//        return ResponseEntity.ok(completed);
-//    }
 
     /* Step 단위 완료 저장 -> 1-1. 1-2 방식으로 저장할 수 있게 수정*/
     @PostMapping("/{stepCode}/complete")
