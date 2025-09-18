@@ -1,0 +1,144 @@
+package com.teachtouch.backend.ocr.serivce;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.vision.v1.*;
+import com.google.protobuf.ByteString;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.*;
+
+@Service
+public class VisionServiceImpl implements VisionService {
+
+    @Override
+    public String extractUiComponentsFromFile(MultipartFile file) throws Exception {
+        ByteString imgBytes = ByteString.readFrom(file.getInputStream());
+        Image img = Image.newBuilder().setContent(imgBytes).build();
+        return processImage(img);
+    }
+
+    @Override
+    public String extractTextFromImage(Image img) throws Exception {
+        String jsonResponse = processImage(img);
+
+        if(jsonResponse.startsWith("Error:")) {
+            System.err.println("Google Vision API Error detected: " + jsonResponse);
+            return "";
+        }
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode rootNode = mapper.readTree(jsonResponse);
+        StringBuilder textBuilder = new StringBuilder();
+
+        if(rootNode.isArray()) {
+            for (JsonNode node : rootNode) {
+                if(node.has("label")) {
+                    textBuilder.append(node.get("label").asText()).append(" ");
+                }
+            }
+        }
+        return textBuilder.toString().trim();
+    }
+
+    private String processImage(Image img) throws Exception {
+        Feature feat = Feature.newBuilder()
+                .setType(Feature.Type.DOCUMENT_TEXT_DETECTION)
+                .build();
+
+        AnnotateImageRequest request = AnnotateImageRequest.newBuilder()
+                .addFeatures(feat)
+                .setImage(img)
+                .build();
+
+        try (ImageAnnotatorClient client = ImageAnnotatorClient.create()) {
+            AnnotateImageResponse res =
+                    client.batchAnnotateImages(Collections.singletonList(request))
+                            .getResponses(0);
+
+            if (res.hasError()) {
+                return "Error: " + res.getError().getMessage();
+            }
+
+            List<Map<String, Object>> components = new ArrayList<>();
+            res.getFullTextAnnotation().getPagesList().forEach(page ->
+                    page.getBlocksList().forEach(block ->
+                            block.getParagraphsList().forEach(para ->
+                                    para.getWordsList().forEach(word -> {
+                                        StringBuilder wordText = new StringBuilder();
+                                        word.getSymbolsList().forEach(symbol ->
+                                                wordText.append(symbol.getText())
+                                        );
+                                        String text = wordText.toString();
+
+                                        var vertices = word.getBoundingBox().getVerticesList();
+                                        int x = (vertices.get(0).getX() + vertices.get(2).getX()) / 2;
+                                        int y = (vertices.get(0).getY() + vertices.get(2).getY()) / 2;
+
+                                        if (text.length() <= 1 && text.matches("[()0-9]+")) return;
+
+                                        Map<String, Object> item = new LinkedHashMap<>();
+                                        item.put("label", text);
+                                        item.put("x", x);
+                                        item.put("y", y);
+                                        components.add(item);
+                                    })
+                            )
+                    )
+            );
+
+            List<Map<String, Object>> merged = mergeByLine(components);
+
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(merged);
+        }
+    }
+
+    private List<Map<String, Object>> mergeByLine(List<Map<String, Object>> items) {
+        List<Map<String, Object>> merged = new ArrayList<>();
+
+        items.sort(Comparator
+                .comparingInt((Map<String, Object> c) -> ((Number) c.get("y")).intValue())
+                .thenComparingInt(c -> ((Number) c.get("x")).intValue()));
+
+        List<Map<String, Object>> currentLine = new ArrayList<>();
+        int yThreshold = 12;
+        int prevY = -9999;
+
+        for (Map<String, Object> comp : items) {
+            int currY = ((Number) comp.get("y")).intValue();
+            if (Math.abs(currY - prevY) <= yThreshold) {
+                currentLine.add(comp);
+            } else {
+                if (!currentLine.isEmpty()) {
+                    merged.add(buildMergedItem(currentLine));
+                    currentLine.clear();
+                }
+                currentLine.add(comp);
+            }
+            prevY = currY;
+        }
+        if (!currentLine.isEmpty()) merged.add(buildMergedItem(currentLine));
+
+        return merged;
+    }
+
+    private Map<String, Object> buildMergedItem(List<Map<String, Object>> line) {
+        line.sort(Comparator.comparingInt(c -> ((Number) c.get("x")).intValue()));
+
+        StringBuilder label = new StringBuilder();
+        int x = ((Number) line.get(0).get("x")).intValue();
+        int y = ((Number) line.get(0).get("y")).intValue();
+
+        for (Map<String, Object> word : line) {
+            label.append(word.get("label")).append(" ");
+        }
+
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("label", label.toString().trim());
+        item.put("x", x);
+        item.put("y", y);
+        return item;
+    }
+}
