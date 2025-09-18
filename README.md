@@ -98,6 +98,7 @@ TTS와 OCR 기술을 접목하여 실제와 유사한 환경 속에서 **반복�
 ---
 
 ## 📂 디렉토리 구조 
+```
 src/main/java/com/teachtouch/backend/
 ├── attendance
 │   ├── controller
@@ -155,3 +156,4 @@ src/main/java/com/teachtouch/backend/
 ├── entity
 ├── repository
 └── service
+```
